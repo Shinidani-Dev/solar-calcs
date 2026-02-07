@@ -1,0 +1,19 @@
+# virtual environment
+.venv/
+
+# jupyter
+.ipynb_checkpoints/
+
+# python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# data (optional!)
+data/*
+!data/.gitkeep
+
+# PyCharm / IntelliJ
+.idea/

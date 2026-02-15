@@ -1,16 +1,27 @@
-# This is a sample Python script.
-
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
+from src.image import SolarImage
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
+def main():
+    # FITS
+    img_fits = SolarImage.from_path("data/_10_03_54Z_SOLEX_82_530_N_SKY-82ED_ZWO-AZ183_10M-GM3000_Ha_20260205_100354.fits")
+    img_fits.set_disk_from_header()
+    img_fits.show("FITS Original")
+
+    sol_img_jpg = SolarImage.from_path("data/_10_03_54Z_SOLEX_82_530_N_SKY-82ED_ZWO-AZ183_10M-GM3000_Ha_20260205_100354_protus.jpg")
+    sol_img_jpg.set_disk_from(img_fits)
+    sol_img_jpg.show("JPG Original")
+
+    sol_img_jpg.prominences_otsu(5, 180, 31)
+    sol_img_jpg.show("RING OTSU")
+
+    mask = sol_img_jpg.copy().prominences_otsu(5, 180, 31)  # jetzt ist mask.data binär
+    profil = mask.calc_protuberanzenprofil(start_offset=20, max_length=180)
+
+    print(len(profil))
+    for i in range(len(profil)):
+        if profil[i] > 0:
+            print(f"{i}: {profil[i]}")
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+if __name__ == "__main__":
+    main()

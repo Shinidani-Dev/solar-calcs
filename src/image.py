@@ -49,6 +49,7 @@ class SolarImage:
     def reset(self):
         self.data = self.original.copy()
         self.history.clear()
+        self.history.append(("Original", self.data.copy()))
 
     def copy(self):
         c = SolarImage(self.data.copy(), self.header)

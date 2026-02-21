@@ -67,18 +67,7 @@ def white_tophat(image: np.ndarray, kernel_size: int = 31) -> np.ndarray:
 def otsu_threshold(image: np.ndarray) -> np.ndarray:
     """
     Apply Otsu thresholding.
-
-    Parameters
-    ----------
-    image : np.ndarray
-        Grayscale image.
-
-    Returns
-    -------
-    np.ndarray
-        Binary image.
     """
-
     # ensure uint8
     if image.dtype != np.uint8:
         img_norm = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX)
@@ -95,7 +84,20 @@ def otsu_threshold(image: np.ndarray) -> np.ndarray:
 
     return thresh
 
-import numpy as np
+
+def bilateral_filter(image: np.ndarray,
+                     d: int = 5,
+                     sigma_color: float = 150,
+                     sigma_space: float = 150) -> np.ndarray:
+    """
+    applies bilateral filtering to reduce noise without erasing important edges
+    """
+    if image.dtype != np.uint8:
+        img_norm = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX)
+        img_uint8 = img_norm.astype(np.uint8)
+    else:
+        img_uint8 = image
+    return cv2.bilateralFilter(img_uint8, d, sigma_color, sigma_space)
 
 
 def calc_protuberanzenprofil(

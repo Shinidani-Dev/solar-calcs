@@ -22,8 +22,11 @@ class SolarImage:
         self.original = data.copy()
         self.data = data.copy()
         self.header = header
-        self.history = []
+        self.history = [("Original", data.copy())]
         self.disk: DiskGeometry | None = None
+        self.deltaX = 0
+        self.deltaY = 0
+        self.deltaR = 0
 
     @classmethod
     def from_path(cls, path: str, grayscale: bool = True) -> "SolarImage":
@@ -45,7 +48,7 @@ class SolarImage:
 
     def reset(self):
         self.data = self.original.copy()
-        self.history.append("reset")
+        self.history.clear()
 
     def copy(self):
         c = SolarImage(self.data.copy(), self.header)
@@ -61,9 +64,17 @@ class SolarImage:
         plt.tight_layout()
         plt.show()
 
+    def show_history(self):
+        for (title, data) in self.history:
+            plt.figure(figsize=(6, 6))
+            plt.imshow(data, cmap="gray")
+            plt.title(title)
+            plt.axis("off")
+            plt.tight_layout()
+            plt.show()
+
     def set_disk(self, cx: float, cy: float, r: float):
         self.disk = DiskGeometry(float(cx), float(cy), float(r))
-        self.history.append(f"set_disk(cx={cx},cy={cy},r={r})")
         return self
 
     def set_disk_from_header(self):
@@ -79,9 +90,9 @@ class SolarImage:
 
         h = self.header
 
-        cx = h.get("INTI_XC")
-        cy = h.get("INTI_YC")
-        r = h.get("INTI_R")
+        cx = h.get("INTI_XC") + self.deltaX + 2
+        cy = h.get("INTI_YC") - self.deltaY - 4
+        r = h.get("INTI_R") - self.deltaR
 
         if cx is None or cy is None or r is None:
             keys = list(h.keys()) if hasattr(h, "keys") else []
@@ -92,7 +103,6 @@ class SolarImage:
             )
 
         return self.set_disk(float(cx), float(cy), float(r))
-
 
     def set_disk_from(self, other: "SolarImage"):
         """
@@ -118,7 +128,6 @@ class SolarImage:
         r = other.disk.r * s
 
         self.disk = DiskGeometry(cx, cy, r)
-        self.history.append("set_disk_from(other)")
         return self
 
     # ================
@@ -129,10 +138,10 @@ class SolarImage:
         Apply Otsu thresholding.
         """
         self.data = processing.otsu_threshold(self.data)
-        self.history.append("otsu")
+        self.history.append(("otsu", self.data.copy()))
         return self
 
-    def prominences_otsu(self, inner: int = 5, outer: int = 150, tophat_kernel: int = 31):
+    def prominences_otsu(self, inner: int = 5, outer: int = 150, tophat_kernel: int = 0):
         if self.disk is None:
             raise ValueError("Disk geometry not set.")
 
@@ -141,12 +150,16 @@ class SolarImage:
         work = self.data
         if tophat_kernel and tophat_kernel > 0:
             work = processing.white_tophat(work, kernel_size=tophat_kernel)
-            self.history.append(f"white_tophat(k={tophat_kernel})")
+            self.history.append((f"white_tophat(k={tophat_kernel})", work))
 
         mask = processing.ring_mask(work.shape[:2], cx, cy, r, inner_margin=inner, outer_margin=outer)
         self.data = processing.apply_otsu_on_mask(work, mask)
-        self.history.append(f"prominences_otsu(inner={inner},outer={outer})")
+        self.history.append(("Otsu Ring", self.data.copy()))
         return self
+
+    def bilateral_filter(self, d: int, sigma_color: int, sigma_space: int):
+        self.data = processing.bilateral_filter(self.data, d, sigma_color, sigma_space)
+        self.history.append(("bilateral filtered", self.data.copy()))
 
     def calc_protuberanzenprofil(self, start_offset: float = 5.0, max_length: float = 250.0, step: float = 1.0) -> list[
         float]:
@@ -162,5 +175,4 @@ class SolarImage:
             step=step,
             white_value=255,
         )
-        self.history.append(f"calc_protuberanzenprofil(start={start_offset},max={max_length},step={step})")
         return prof.tolist()
